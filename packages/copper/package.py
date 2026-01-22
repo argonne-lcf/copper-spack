@@ -1,7 +1,8 @@
 import os
 
+from spack_repo.builtin.build_systems.cmake import CMakePackage
 from spack.package import *
-from llnl.util import tty
+from spack.llnl.util import tty
 
 class Copper(CMakePackage):
     """Copper: Cooperative Caching Layer for Scalable Data Loading in Exascale Supercomputers"""
@@ -19,6 +20,10 @@ class Copper(CMakePackage):
     # Variants
     variant("block_redundant_rpcs", default=True, description="On off block_redundant_rpcs ")
     variant("checksum", default=True, description="Enable checksum support")
+
+    # Compiler dependencies
+    depends_on("c", type="build")
+    depends_on("cxx", type="build")
 
     # Add the dependencies your software requires
     depends_on('pkgconfig')
