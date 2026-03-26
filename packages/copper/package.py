@@ -2,62 +2,82 @@ import os
 
 from spack_repo.builtin.build_systems.cmake import CMakePackage
 from spack.package import *
-from spack.llnl.util import tty
+
 
 class Copper(CMakePackage):
-    """Copper: Cooperative Caching Layer for Scalable Data Loading in Exascale Supercomputers"""
+    """Copper: Cooperative Caching Layer for Scalable Data Loading in Exascale Supercomputers."""
 
-    # Replace this with the actual URL to download your source code
     homepage = "https://github.com/argonne-lcf/copper"
-    url      = "https://github.com/argonne-lcf/copper.git"
-    git      = "https://github.com/argonne-lcf/copper.git"
-    
+    url = "https://github.com/argonne-lcf/copper.git"
+    git = "https://github.com/argonne-lcf/copper.git"
+
     maintainers("kaushikvelusamy", "kevin-harms")
 
-    # Add versions of your software here
     version("main", branch="main")
 
-    # Variants
-    variant("block_redundant_rpcs", default=True, description="On off block_redundant_rpcs ")
-    variant("checksum", default=True, description="Enable checksum support")
+    variant(
+        "block_redundant_rpcs",
+        default=True,
+        description="Enable duplicate-RPC suppression in Copper forwarding paths",
+    )
+    variant(
+        "checksum",
+        default=True,
+        description="Build against checksum-enabled Mercury",
+    )
 
-    # Compiler dependencies
     depends_on("c", type="build")
     depends_on("cxx", type="build")
+    depends_on("cmake", type="build")
+    depends_on("pkgconfig", type="build")
 
-    # Add the dependencies your software requires
-    depends_on('pkgconfig')
-    depends_on('fuse@3')
-    
-    # Dependencies — propagate checksum setting to Mercury
+    depends_on("fuse@3")
     depends_on("mercury@2.4:+checksum", when="+checksum")
     depends_on("mercury@2.4:~checksum", when="~checksum")
-
-    depends_on('cereal@1.3:')
-    depends_on('mochi-margo@0.18:')
-    depends_on('mochi-thallium@0.14:')
-    depends_on('mpi')
-    
+    depends_on("cereal@1.3:")
+    depends_on("mochi-margo@0.18:")
+    depends_on("mochi-thallium@0.14:")
+    depends_on("mpi")
 
     def cmake_args(self):
-        args = []
-
-        # hardcoded flags
-        args.extend([
-            self.define('CMAKE_VERBOSE_MAKEFILE', True),
-            self.define('CMAKE_EXPORT_COMPILE_COMMANDS', True),
-        ])
-
-        # from variants
-        args.extend([
+        return [
+            self.define("CMAKE_VERBOSE_MAKEFILE", True),
+            self.define("CMAKE_EXPORT_COMPILE_COMMANDS", True),
             self.define_from_variant("BLOCK_REDUNDANT_RPCS", "block_redundant_rpcs"),
-            self.define_from_variant("ENABLE_CHECKSUM", "checksum"),
-        ])
+        ]
 
-        # Warnings to user
-        if self.spec.satisfies("+checksum"):
-            tty.warn("Checksum support is ENABLED — stronger data integrity, may reduce performance.")
-        else:
-            tty.warn("Checksum support is DISABLED — faster, but less safe.")
+    def install(self, spec, prefix):
+        super().install(spec, prefix)
 
-        return args
+        runtime_build_dir = join_path(prefix, "build")
+        mkdirp(runtime_build_dir)
+
+        # Copper launch wrappers expect a build-style runtime layout with the
+        # binaries, helper scripts, and staged address-book files under
+        # ${COPPER_ROOT}/build.
+        runtime_artifacts = [
+            "cu_fuse",
+            "cu_fuse_shutdown",
+            "list_cxi_hsn_thallium",
+            "launch_copper.sh",
+            "stop_copper.sh",
+            "aggregate_profiling.py",
+            "olcf_frontier_copper_addressbook.txt",
+            "alcf_aurora_copper_addressbook.txt",
+        ]
+
+        for artifact in runtime_artifacts:
+            source_path = join_path(self.build_directory, artifact)
+            if os.path.exists(source_path):
+                install(source_path, join_path(runtime_build_dir, artifact))
+
+    def setup_run_environment(self, env):
+        runtime_build_dir = join_path(self.prefix, "build")
+
+        env.set("COPPER_ROOT", self.prefix)
+        env.set("CUPATH", join_path(runtime_build_dir, "cu_fuse"))
+        env.set(
+            "facility_address_book",
+            join_path(runtime_build_dir, "olcf_frontier_copper_addressbook.txt"),
+        )
+        env.prepend_path("PATH", runtime_build_dir)
