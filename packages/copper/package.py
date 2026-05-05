@@ -59,8 +59,10 @@ class Copper(CMakePackage):
             "cu_fuse",
             "cu_fuse_shutdown",
             "list_cxi_hsn_thallium",
-            "launch_copper.sh",
-            "stop_copper.sh",
+            "launch_copper_aurora.sh",
+            "launch_copper_frontier.sh",
+            "stop_copper_aurora.sh",
+            "stop_copper_frontier.sh",
             "aggregate_profiling.py",
             "olcf_frontier_copper_addressbook.txt",
             "alcf_aurora_copper_addressbook.txt",
@@ -76,8 +78,4 @@ class Copper(CMakePackage):
 
         env.set("COPPER_ROOT", self.prefix)
         env.set("CUPATH", join_path(runtime_build_dir, "cu_fuse"))
-        env.set(
-            "facility_address_book",
-            join_path(runtime_build_dir, "olcf_frontier_copper_addressbook.txt"),
-        )
         env.prepend_path("PATH", runtime_build_dir)

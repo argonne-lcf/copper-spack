@@ -15,10 +15,17 @@ spack repo add ./copper-spack
 spack install copper%oneapi
 ```
 
-After installation, load Copper with:
+After installation, load Copper with Spack or with the site module:
 
 ```bash
 spack load copper
+```
+
+For deployed environment modules, the common load commands are:
+
+```bash
+module load copper            # Aurora
+module load ums ums046 copper # Frontier
 ```
 
 ## Variants
@@ -47,25 +54,36 @@ and sets:
 
 - ``COPPER_ROOT``
 - ``CUPATH``
-- ``facility_address_book``
 
 The installed ``build/`` directory is expected to contain:
 
 - ``cu_fuse``
 - ``cu_fuse_shutdown``
-- ``launch_copper.sh``
-- ``stop_copper.sh``
+- ``launch_copper_aurora.sh``
+- ``launch_copper_frontier.sh``
+- ``stop_copper_aurora.sh``
+- ``stop_copper_frontier.sh``
 - ``aggregate_profiling.py``
 - ``list_cxi_hsn_thallium`` when the helper is built
 - ``olcf_frontier_copper_addressbook.txt``
 - ``alcf_aurora_copper_addressbook.txt``
 
-## Load Copper on Aurora
+The launch wrappers choose their facility defaults directly:
+
+- ``launch_copper_aurora.sh`` uses ``alcf_aurora_copper_addressbook.txt``,
+  ``cxi``, and service cores ``48,49,50,51``
+- ``launch_copper_frontier.sh`` uses ``olcf_frontier_copper_addressbook.txt``,
+  ``cxi://cxi1``, and service cores ``1,2``
+
+Use ``-F`` to pass a different facility address-book file.
+
+## Load Copper
 
 If Copper is provided through environment modules, load it with:
 
 ```bash
-module load copper
+module load copper            # Aurora
+module load ums ums046 copper # Frontier
 ```
 
 If you installed Copper directly with Spack, use:
@@ -74,6 +92,16 @@ If you installed Copper directly with Spack, use:
 spack load copper
 ```
 
-After ``spack load copper``, the launch wrappers follow the same runtime layout
-used by the source tree: ``${COPPER_ROOT}/build`` contains the main Copper
-binary, shutdown tool, helper scripts, and staged address-book files.
+After loading Copper, the launch wrappers follow the same runtime layout used by
+the source tree: ``${COPPER_ROOT}/build`` contains the main Copper binary,
+shutdown tool, helper scripts, and staged address-book files.
+
+## Start and Stop Copper
+
+```bash
+launch_copper_aurora.sh  [-d log_dir_base] [-v CU_FUSE_MNT_VIEWDIR]
+launch_copper_frontier.sh [-d log_dir_base] [-v CU_FUSE_MNT_VIEWDIR]
+
+stop_copper_aurora.sh  [-d log_dir_base] [-v CU_FUSE_MNT_VIEWDIR]
+stop_copper_frontier.sh [-d log_dir_base] [-v CU_FUSE_MNT_VIEWDIR]
+```
